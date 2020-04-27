@@ -2,18 +2,40 @@
 
 namespace Spatie\WebhookServer\Tests\TestClasses;
 
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Assert;
 
 class TestClient
 {
-    private $requests = [];
+    private array $requests = [];
 
-    private $useResponseCode = 200;
+    private int $useResponseCode = 200;
+
+    private bool $throwRequestException = false;
+
+    private bool $throwConnectionException = false;
 
     public function request(string $method, string $url, array $options)
     {
         $this->requests[] = compact('method', 'url', 'options');
+
+        if ($this->throwRequestException) {
+            throw new RequestException(
+                'Request failed exception',
+                new Request($method, $url),
+                new Response(500)
+            );
+        }
+
+        if ($this->throwConnectionException) {
+            throw new ConnectException(
+                'Request timeout',
+                new Request($method, $url),
+            );
+        }
 
         return new Response($this->useResponseCode);
     }
@@ -39,5 +61,15 @@ class TestClient
     public function letEveryRequestFail()
     {
         $this->useResponseCode = 500;
+    }
+
+    public function throwRequestException()
+    {
+        $this->throwRequestException = true;
+    }
+
+    public function throwConnectionException()
+    {
+        $this->throwConnectionException = true;
     }
 }
