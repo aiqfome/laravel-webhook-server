@@ -2,12 +2,12 @@
 
 namespace Spatie\WebhookServer\Tests;
 
-use Spatie\WebhookServer\WebhookCall;
 use Illuminate\Support\Facades\Queue;
 use Spatie\WebhookServer\CallWebhookJob;
-use Spatie\WebhookServer\Exceptions\InvalidSigner;
 use Spatie\WebhookServer\Exceptions\CouldNotCallWebhook;
 use Spatie\WebhookServer\Exceptions\InvalidBackoffStrategy;
+use Spatie\WebhookServer\Exceptions\InvalidSigner;
+use Spatie\WebhookServer\WebhookCall;
 
 class WebhookTest extends TestCase
 {
@@ -34,7 +34,7 @@ class WebhookTest extends TestCase
             $this->assertEquals($config['tries'], $job->tries);
             $this->assertEquals($config['timeout_in_seconds'], $job->requestTimeout);
             $this->assertEquals($config['backoff_strategy'], $job->backoffStrategyClass);
-            $this->assertEquals([$config['signature_header_name']], array_keys($job->headers));
+            $this->assertContains($config['signature_header_name'], array_keys($job->headers));
             $this->assertEquals($config['verify_ssl'], $job->verifySsl);
             $this->assertEquals($config['tags'], $job->tags);
 
@@ -56,6 +56,14 @@ class WebhookTest extends TestCase
         $this->expectException(CouldNotCallWebhook::class);
 
         WebhookCall::create()->url('https://localhost')->dispatch();
+    }
+
+    /** @test */
+    public function it_will_not_throw_an_exception_if_there_is_not_secret_and_the_request_should_not_be_signed()
+    {
+        WebhookCall::create()->doNotSign()->url('https://localhost')->dispatch();
+
+        $this->assertTrue(true);
     }
 
     /** @test */

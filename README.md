@@ -1,8 +1,9 @@
 # Send webhooks from Laravel/Lumen apps
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/spatie/laravel-webhook-server.svg?style=flat-square)](https://packagist.org/packages/spatie/laravel-webhook-server)
-[![Build Status](https://img.shields.io/travis/spatie/laravel-webhook-server/master.svg?style=flat-square)](https://travis-ci.org/spatie/laravel-webhook-server)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/spatie/laravel-webhook-server/run-tests?label=tests)
 [![Quality Score](https://img.shields.io/scrutinizer/g/spatie/laravel-webhook-server.svg?style=flat-square)](https://scrutinizer-ci.com/g/spatie/laravel-webhook-server)
+[![StyleCI](https://github.styleci.io/repos/191252974/shield?branch=master)](https://github.styleci.io/repos/191252974)
 [![Total Downloads](https://img.shields.io/packagist/dt/spatie/laravel-webhook-server.svg?style=flat-square)](https://packagist.org/packages/spatie/laravel-webhook-server)
 
 A webhook is a way for an app to provide information to another app about a particular event. The way the two apps communicate is with a simple HTTP request. 
@@ -10,6 +11,12 @@ A webhook is a way for an app to provide information to another app about a part
 This package allows you to configure and send webhooks in a Laravel app easily. It has support for [signing calls](https://github.com/spatie/laravel-webhook-server#how-signing-requests-works), [retrying calls and backoff strategies](https://github.com/spatie/laravel-webhook-server#retrying-failed-webhooks).
 
 If you need to receive and process webhooks take a look at our [laravel-webhook-client](https://github.com/spatie/laravel-webhook-client) package.
+
+## Support us
+
+We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us). 
+
+We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
 
 ## Installation
 
@@ -118,6 +125,17 @@ This will send a post request to `https://other-app.com/webhooks`. The body of t
 
 If the receiving app doesn't respond with a response code starting with `2`, the package will retry calling the webhook after 10 seconds. If that second attempt fails, the package will attempt to call the webhook a final time after 100 seconds. Should that attempt fail, the `FinalWebhookCallFailedEvent` will be raised.
 
+### Send webhook synchronously
+
+If you would like to call the webhook immediately (synchronously), you may use the dispatchNow method. When using this method, the webhook will not be queued and will be run immediately. This can be helpfull in situation where sending the webhook is part of a bigger job that already has been queued.
+
+```php
+WebhookCall::create()
+   ...
+   ->dispatchNow();
+```
+
+
 ### How signing requests works
 
 When setting up, it's common to generate, store, and share a secret between your app and the app that wants to receive webhooks. Generating the secret could be done with `Illuminate\Support\Str::random()`, but it's entirely up to you. The package will use the secret to sign a webhook call.
@@ -132,6 +150,19 @@ $payloadJson = json_encode($payload);
 
 $signature = hash_hmac('sha256', $payloadJson, $secret);
 ```
+
+### Skip signing request
+
+We don't recommend this, but if you don't want the web hook request to be signed call the `doNotSign` method.
+
+```php
+WebhookCall::create()
+   ->doNotSign()
+    ...
+```
+
+By calling this method, the `Signature` header will not be set.
+
 
 ### Customizing signing requests
 
@@ -275,6 +306,11 @@ WebhookCall::create()
     ->dispatch();
 ```
 
+### Exception handling
+By default, the package will not log any exceptions that are thrown when sending a webhook.
+
+To handle exceptions you need to create listen for the `Spatie\WebhookServer\Events\WebhookCallFailedEvent` and/or `Spatie\WebhookServer\Events|FinalWebhookCallFailedEvent` events.
+
 ### Events
 
 The package fires these events:
@@ -292,6 +328,7 @@ All these events have these properties:
 - `tags`: the array of [tags](#adding-tags) used
 - `attempt`: the attempt number
 - `response`: the response returned by the remote app. Can be an instance of `\GuzzleHttp\Psr7\Response` or `null`.
+- `uuid`: a unique string to identify this call. This uuid will be the same for all attempts of a webhook call.
 
 ## Testing
 
@@ -323,13 +360,6 @@ We publish all received postcards [on our company website](https://spatie.be/en/
 
 - [Freek Van der Herten](https://github.com/freekmurze)
 - [All Contributors](../../contributors)
-
-## Support us
-
-Spatie is a web design agency based in Antwerp, Belgium. You'll find an overview of all our open source projects [on our website](https://spatie.be/opensource).
-
-Does your business depend on our contributions? Reach out and support us on [Patreon](https://www.patreon.com/spatie). 
-All pledges will be dedicated to allocating workforce on maintenance and new awesome stuff.
 
 ## License
 
