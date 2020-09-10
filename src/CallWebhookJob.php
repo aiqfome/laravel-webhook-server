@@ -4,10 +4,12 @@ namespace Spatie\WebhookServer;
 
 use Exception;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
@@ -17,7 +19,7 @@ use Spatie\WebhookServer\Events\WebhookCallSucceededEvent;
 
 class CallWebhookJob implements ShouldQueue
 {
-    use InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public ?string $webhookUrl = null;
 
@@ -70,7 +72,7 @@ class CallWebhookJob implements ShouldQueue
                 'headers' => $this->headers,
             ], $body));
 
-            if (! Str::startsWith($this->response->getStatusCode(), 2)) {
+            if (!Str::startsWith($this->response->getStatusCode(), 2)) {
                 throw new Exception('Webhook call failed');
             }
 
@@ -84,7 +86,12 @@ class CallWebhookJob implements ShouldQueue
                 $this->errorMessage = $exception->getMessage();
             }
 
-            if (! $lastAttempt) {
+            if ($exception instanceof ConnectException) {
+                $this->errorType = get_class($exception);
+                $this->errorMessage = $exception->getMessage();
+            }
+
+            if (!$lastAttempt) {
                 /** @var \Spatie\WebhookServer\BackoffStrategy\BackoffStrategy $backoffStrategy */
                 $backoffStrategy = app($this->backoffStrategyClass);
 
