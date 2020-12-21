@@ -9,8 +9,8 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        php: [7.4]
-        laravel: [8.*, 7.*, 6.*, 5.8.*]
+        php: [7.4, 8.0]
+        laravel: [8.*]
         os: [ubuntu-latest, windows-latest, macos-latest]
         dependency-version: [prefer-lowest, prefer-stable]
         include:
